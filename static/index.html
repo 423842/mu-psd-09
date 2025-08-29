@@ -12,7 +12,7 @@
 <body>
 
     <div id="app" class="container">
-        <h2 class="mb-4">サンプルアプリ</h2>
+        <h2 class="mb-4">サンプルアプリだョ！全員集合</h2>
 
         <div class="mb-3">
             <label for="inputText" class="form-label">テキストを入力してください:</label>
@@ -22,6 +22,7 @@
         <div class="mb-3">
             <button @click="execute" class="btn btn-primary">実行</button>
             <button @click="execute_kansai" class="btn btn-success ms-2">関西弁で実行</button>
+            <button @click="execute_neko" class="btn btn-info ms-2">猫語で実行</button>
         </div>
         
         <h3>結果:</h3>
@@ -71,6 +72,9 @@
                 },
                 execute_kansai() {
                     this.sendRequest("あなたは親切な関西人です。ユーザーからの入力に対して、必ず関西弁で、親しみやすく、そして140字以内で回答してください。");
+                },
+                execute_neko() {
+                    this.sendRequest("あなたは優秀な猫アシスタントです。語尾に「にゃ」や「にゃん」をつけ、猫になりきって回答してください。");
                 }
             }
         }).mount('#app');
