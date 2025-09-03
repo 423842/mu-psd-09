@@ -1,30 +1,29 @@
+# app.py
+
 import os
 from flask import Flask, request, jsonify, send_from_directory
 from transformers import pipeline
 from flask_cors import CORS
 
-# Flaskアプリケーションの初期化
 app = Flask(__name__)
-# CORSを有効化
 CORS(app)
 
-# Hugging FaceのAIモデルをロード
 try:
     classifier = pipeline(
         "audio-classification", 
-        model="rinna/japanese-wav2vec2-base-900h"
+        model="superb/wav2vec2-base-jp-emotion"  # モデル名を修正
     )
     print("AIモデルが正常にロードされました。")
 except Exception as e:
     print(f"モデルのロード中にエラーが発生しました: {e}")
     exit()
 
-# フロントエンドのHTMLファイルを返すルート
+# 以下、変更なし
+# ...
 @app.route('/')
 def index():
     return send_from_directory('.', 'index.html')
 
-# 感情分析APIエンドポイント
 @app.route('/predict_emotion', methods=['POST'])
 def predict_emotion():
     if 'audio_file' not in request.files:
