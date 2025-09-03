@@ -1,105 +1,53 @@
+# app.py
+
 import os
 from flask import Flask, request, jsonify, send_from_directory
-from openai import OpenAI # Import the OpenAI library
-from dotenv import load_dotenv
+from transformers import pipeline
+from flask_cors import CORS
 
-# .envファイルから環境変数を読み込む
-load_dotenv()
-
-# Flaskアプリケーションのインスタンスを作成
-# static_folderのデフォルトは 'static' なので、
-# このファイルと同じ階層に 'static' フォルダがあれば自動的にそこが使われます。
 app = Flask(__name__)
+CORS(app)
 
-# 開発モード時に静的ファイルのキャッシュを無効にする
-if app.debug:
-    @app.after_request
-    def add_header(response):
-        # /static/ 以下のファイルに対するリクエストの場合
-        if request.endpoint == 'static':
-            response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
-            response.headers['Pragma'] = 'no-cache' # HTTP/1.0 backward compatibility
-            response.headers['Expires'] = '0' # Proxies
-        return response
+try:
+    classifier = pipeline(
+        "audio-classification", 
+        model="superb/wav2vec2-base-superb-er"  # モデル名を修正
+    )
+    print("AIモデルが正常にロードされました。")
+except Exception as e:
+    print(f"モデルのロード中にエラーが発生しました: {e}")
+    exit()
 
-
-# OpenRouter APIキーと関連情報を環境変数から取得
-# このキーはサーバーサイドで安全に管理してください
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-SITE_URL = os.getenv("YOUR_SITE_URL", "http://localhost:5000") # Default if not set
-APP_NAME = os.getenv("YOUR_APP_NAME", "FlaskVueApp") # Default if not set
-
-# URL:/ に対して、static/index.htmlを表示して
-    # クライアントサイドのVue.jsアプリケーションをホストする
+# 以下、変更なし
+# ...
 @app.route('/')
 def index():
-    return send_from_directory(app.static_folder, 'index.html')
+    return send_from_directory('.', 'index.html')
+
+@app.route('/predict_emotion', methods=['POST'])
+def predict_emotion():
+    if 'audio_file' not in request.files:
+        return jsonify({'error': '音声ファイルがアップロードされていません'}), 400
     
-# URL:/send_api に対するメソッドを定義
-@app.route('/send_api', methods=['POST'])
-def send_api():
-    if not OPENROUTER_API_KEY:
-        app.logger.error("OpenRouter API key not configured.")
-        return jsonify({"error": "OpenRouter API key is not configured on the server."}), 500
+    audio_file = request.files['audio_file']
+    if audio_file.filename == '':
+        return jsonify({'error': 'ファイルが選択されていません'}), 400
 
-    client = OpenAI(
-        base_url="https://openrouter.ai/api/v1",
-        api_key=OPENROUTER_API_KEY,
-        default_headers={ # Recommended by OpenRouter
-            "HTTP-Referer": SITE_URL,
-            "X-Title": APP_NAME,
-        }
-    )
-    
-    # POSTリクエストからJSONデータを取得
-    data = request.get_json()
+    if audio_file:
+        temp_file_path = "temp_audio_input.wav"
+        audio_file.save(temp_file_path)
 
-    # 'text'フィールドがリクエストのJSONボディに存在するか確認
-    if not data or 'text' not in data:
-        app.logger.error("Request JSON is missing or does not contain 'text' field.")
-        return jsonify({"error": "Missing 'text' in request body"}), 400
+        try:
+            prediction_result = classifier(temp_file_path)
+            response = {
+                'status': 'success',
+                'predictions': prediction_result
+            }
+            return jsonify(response), 200
+        except Exception as e:
+            return jsonify({'error': f'音声処理または予測中にエラーが発生しました: {e}'}), 500
+        finally:
+            os.remove(temp_file_path)
 
-    received_text = data['text']
-    if not received_text.strip(): # 空文字列や空白のみの文字列でないか確認
-        app.logger.error("Received text is empty or whitespace.")
-        return jsonify({"error": "Input text cannot be empty"}), 400
-    
-    # contextがあればsystemプロンプトに設定、なければデフォルト値
-    system_prompt = "140字以内で回答してください。" # デフォルトのシステムプロンプト
-    if 'context' in data and data['context'] and data['context'].strip():
-        system_prompt = data['context'].strip()
-        app.logger.info(f"Using custom system prompt from context: {system_prompt}")
-    else:
-        app.logger.info(f"Using default system prompt: {system_prompt}")
-
-    try:
-        # OpenRouter APIを呼び出し
-        # モデル名はOpenRouterで利用可能なモデルを指定してください。
-        # 例: "mistralai/mistral-7b-instruct", "google/gemini-pro", "openai/gpt-3.5-turbo"
-        # 詳細はOpenRouterのドキュメントを参照してください。
-        chat_completion = client.chat.completions.create(
-            messages=[ # type: ignore
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": received_text}
-            ], # type: ignore
-            model="google/gemma-3-27b-it:free", 
-        )
-        
-        # APIからのレスポンスを取得
-        if chat_completion.choices and chat_completion.choices[0].message:
-            processed_text = chat_completion.choices[0].message.content
-        else:
-            processed_text = "AIから有効な応答がありませんでした。"
-            
-        return jsonify({"message": "AIによってデータが処理されました。", "processed_text": processed_text})
-
-    except Exception as e:
-        app.logger.error(f"OpenRouter API call failed: {e}")
-        # クライアントには具体的なエラー詳細を返しすぎないように注意
-        return jsonify({"error": f"AIサービスとの通信中にエラーが発生しました。"}), 500
-
-# スクリプトが直接実行された場合にのみ開発サーバーを起動
 if __name__ == '__main__':
-    if not OPENROUTER_API_KEY:
-        print("警告: 環境変数 OPENROUTER_API_KEY が設定されていません。API呼び出しは失敗します。")
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=5000, debug=True)
