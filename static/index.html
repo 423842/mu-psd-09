@@ -3,13 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sample Application</title>
-    <!-- Vue.jsをCDNから読み込み -->
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <!-- BootStrapをCDNから読み込み -->
-	<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css">
+    <title>音声感情分析</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f2f5;
+        }
+        .container {
+            text-align: center;
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        input[type="file"] {
+            margin: 20px 0;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        #result {
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+    </style>
 </head>
 <body>
+<<<<<<< HEAD
 
     <div id="app" class="container">
         <h2 class="mb-4">サンプルアプリだョ！全員集合</h2>
@@ -79,5 +111,15 @@
             }
         }).mount('#app');
     </script>
+=======
+    <div class="container">
+        <h1>音声感情分析</h1>
+        <p>音声ファイルを選択して、感情を分析しましょう。</p>
+        <input type="file" id="audioFile" accept="audio/*">
+        <button onclick="uploadAudio()">分析開始</button>
+        <div id="result"></div>
+    </div>
+    <script src="script.js"></script>
+>>>>>>> f59bead1195be863c95e81e5ddbe3b5d64fd90ec
 </body>
 </html>
