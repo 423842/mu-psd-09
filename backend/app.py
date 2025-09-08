@@ -1,13 +1,15 @@
 # backend/app.py
 import os
-os.environ["PATH"] = r"C:\ffmpeg\bin;" + os.environ["PATH"]
 import tempfile
 import logging
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import whisper
-from transformers import pipeline
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
 import torch
+
+# ffmpegのパスを環境変数に追加
+os.environ["PATH"] = r"C:\ffmpeg\bin;" + os.environ["PATH"]
 
 # ---------- Config ----------
 EMOTION_MODEL = os.environ.get("EMOTION_MODEL", "koshin2001/Japanese-to-emotions")
@@ -16,7 +18,7 @@ MAX_UPLOAD_MB = int(os.environ.get("MAX_UPLOAD_MB", 50))
 
 # ---------- App ----------
 app = Flask(__name__)
-CORS(app)  # フロントをプロキシしない場合は適宜オリジン制限を追加すること
+CORS(app)
 app.config['MAX_CONTENT_LENGTH'] = MAX_UPLOAD_MB * 1024 * 1024
 
 logging.basicConfig(level=logging.INFO)
@@ -35,11 +37,10 @@ asr_model = whisper.load_model(WHISPER_MODEL)
 device = 0 if torch.cuda.is_available() else -1
 logger.info(f"Loading emotion model: {EMOTION_MODEL} (device={'cuda' if device==0 else 'cpu'})")
 
-# モデルとトークナイザを個別にロードして、token_type_idsの問題に対処
-from transformers import AutoModelForSequenceClassification, AutoTokenizer
+# Load model and tokenizer separately to handle token_type_ids issue
 model = AutoModelForSequenceClassification.from_pretrained(EMOTION_MODEL)
 tokenizer = AutoTokenizer.from_pretrained(EMOTION_MODEL)
-model.to("cpu" if device == -1 else "cuda:0") # モデルを正しいデバイスに配置
+model.to("cpu" if device == -1 else "cuda:0") # Ensure model is on the correct device
 
 @app.route("/health", methods=["GET"])
 def health():
@@ -55,13 +56,11 @@ def upload():
     if not allowed_filename(f.filename):
         return jsonify({"error": "Unsupported file extension. Only .wav allowed"}), 400
 
-    # save to temp
     with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
         f.save(tmp.name)
         tmp_path = tmp.name
 
     try:
-        # Whisper transcription (日本語)
         logger.info("Transcribing audio with Whisper...")
         whisper_result = asr_model.transcribe(tmp_path, language="ja")
         text = whisper_result.get("text", "").strip()
@@ -75,7 +74,6 @@ def upload():
                 "warning": "Transcription empty"
             }), 200
 
-        # 手動によるトークン化と感情分類
         logger.info("Running emotion classification pipeline...")
         inputs = tokenizer(text, return_tensors="pt")
         if "token_type_ids" in inputs:
@@ -87,7 +85,6 @@ def upload():
         logits = outputs.logits.squeeze(0)
         scores = torch.nn.functional.softmax(logits, dim=-1)
 
-        # 感情ラベルをマッピングするための辞書
         emotion_map = {
             "LABEL_0": "喜び",
             "LABEL_1": "悲しみ",
@@ -95,11 +92,18 @@ def upload():
             "LABEL_3": "驚き",
             "LABEL_4": "恐怖",
             "LABEL_5": "嫌悪",
-            "LABEL_6": "中立"
+            "LABEL_6": "中立",
+            "LABEL_7": "その他"
         }
         
-        id2label = model.config.id2label
-        emotions = [{"label": emotion_map.get(id2label[i], id2label[i]), "score": float(scores[i])} for i in range(len(scores))]
+        # 感情スコアを100分率に変換し、小数点以下2桁に丸める
+        emotions = [
+            {
+                "label": emotion_map.get(model.config.id2label[i], model.config.id2label[i]),
+                "score": round(float(scores[i]) * 100, 2)
+            }
+            for i in range(len(scores))
+        ]
         
         emotions_sorted = sorted(emotions, key=lambda x: x["score"], reverse=True)
         top = emotions_sorted[0] if emotions_sorted else None
