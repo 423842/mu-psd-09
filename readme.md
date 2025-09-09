@@ -44,14 +44,18 @@ winget install --id Microsoft.VisualStudioCode -e --source winget
 
 - １つ目のコマンドプロンプトでは、以下のコマンドを実行します。
 
-  ``` cd .\backend ```
-  ``` venv\Scripts\activate ```
-  ``` python app.py ```
+```
+	cd .\backend
+	venv\Scripts\activate
+	python app.py
+```
 
 - ２つ目のコマンドプロンプトでは、以下のコマンドを実行します。
 
-  ``` cd .\frontend ```
-  ``` npm run dev ```
+``` 
+  cd .\frontend
+  npm run dev
+```
 
 - ブラウザで以下のURLにアクセスしてみてください。
 
