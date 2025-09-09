@@ -57,36 +57,29 @@
     <div v-if="result">
       <h2 v-if="selectedTab === 'file'">{{ selectedFile.name }}の解析結果</h2>
       <h2 v-if="selectedTab === 'record'">録音した音声の解析結果</h2>
-      <p v-if="result.transcription">
-        <strong>テキスト:</strong> {{ result.transcription }}
-      </p>
-      <p v-else :style="{ color: 'gray', opacity: 0.5 }">
-        音声が入力されていません
-      </p>
-      <div v-if="result.transcription">
-        <h3 v-if="dominantEmotion" class="summary-text">
-          この音声には 
-          <strong :style="{ color: getOpaqueColor(emotionColors[dominantEmotion.label]) }">
-            {{ dominantEmotion.label }}
-          </strong>
-          の感情が <strong>{{ dominantEmotion.score }}%</strong> 含まれています。
-        </h3>
-        
-        <h3>感情スコア</h3>
-        <ul>
-          <li
-            v-for="emotion in result.emotions"
-            :key="emotion.label"
-            :style="{ 
-              '--score-width': emotion.score + '%', 
-              '--score-color': emotionColors[emotion.label] 
-            }"
-          >
-            <div class="score-bar"></div>
-            <strong>{{ emotion.label }}:</strong> {{ emotion.score }}%
-          </li>
-        </ul>
-      </div>
+      <p><strong>テキスト:</strong> {{ result.transcription }}</p>
+      <h3 v-if="dominantEmotion" class="summary-text">
+        この音声には 
+        <strong :style="{ color: getOpaqueColor(emotionColors[dominantEmotion.label]) }">
+          {{ dominantEmotion.label }}
+        </strong>
+        の感情が <strong>{{ dominantEmotion.score }}%</strong> 含まれています。
+      </h3>
+      
+      <h3>感情スコア</h3>
+      <ul>
+        <li
+          v-for="emotion in result.emotions"
+          :key="emotion.label"
+          :style="{ 
+            '--score-width': emotion.score + '%', 
+            '--score-color': emotionColors[emotion.label] 
+          }"
+        >
+          <div class="score-bar"></div>
+          <strong>{{ emotion.label }}:</strong> {{ emotion.score }}%
+        </li>
+      </ul>
     </div>
   </div>
 </template>
@@ -111,10 +104,7 @@ export default {
       loadingInterval: null,
       remainingTime: 100, // 残り時間のパーセンテージ
       recordingTimer: null, // 録音タイマー
-      tabAtRequestStart: null, // 解析開始時のタブを保持
-      recordingTimeout: null, // 録音自動停止用のタイマー
       countdown: 0, // 録音開始までのカウントダウン
-      countdownInterval: null, // カウントダウンのインターバルID
       emotionColors: { // 感情と色のマッピング
         '喜び': 'rgba(255, 225, 0, 0.4)',
         '悲しみ': 'rgba(0, 130, 255, 0.3)',
@@ -162,20 +152,6 @@ export default {
         // Reset background color when result is cleared
         document.body.style.backgroundColor = '';
       }
-    },
-    selectedTab(newTab, oldTab) {
-      if (newTab !== oldTab) {
-        // カウントダウン中にタブを切り替えた場合
-        if (this.countdown > 0 && this.countdownInterval) {
-          clearInterval(this.countdownInterval);
-          this.countdownInterval = null;
-          this.countdown = 0;
-        }
-        // 録音中にタブを切り替えた場合
-        if (this.recording) {
-          this.stopRecording();
-        }
-      }
     }
   },
   computed: {
@@ -195,12 +171,10 @@ export default {
   methods: {
     selectTab(tab) {
       this.selectedTab = tab;
-      // 解析中でない場合のみ、タブ切り替え時に結果とファイルをクリアする
-      if (!this.loading) {
-        this.result = null;
-        this.selectedFile = null;
-      }
+      // Clear the analysis result and recorded file when switching tabs
+      this.result = null;
       this.recordedFile = null;
+      this.selectedFile = null;
     },
     getOpaqueColor(rgbaColor) {
       if (!rgbaColor) return '#2c3e50'; // Default color
@@ -218,7 +192,6 @@ export default {
       if (!this.selectedFile) return;
       this.loading = true;
       this.result = null;
-      this.tabAtRequestStart = this.selectedTab; // 解析開始時のタブを記録
 
       const formData = new FormData();
       formData.append("file", this.selectedFile);
@@ -229,10 +202,7 @@ export default {
             "Content-Type": "multipart/form-data",
           },
         });
-        // 結果をセットする前に、タブが変更されていないか確認
-        if (this.selectedTab === this.tabAtRequestStart) {
-          this.result = response.data;
-        }
+        this.result = response.data;
       } catch (error) {
         console.error("アップロード失敗:", error);
       } finally {
@@ -241,18 +211,19 @@ export default {
     },
     initiateRecording() {
       this.countdown = 3;
-      this.countdownInterval = setInterval(() => {
+      const countdownInterval = setInterval(() => {
         this.countdown -= 1;
         if (this.countdown <= 0) {
-          clearInterval(this.countdownInterval);
-          this.countdownInterval = null;
-          this.startRecording();
+          clearInterval(countdownInterval);
+          // カウントダウンが終了したら、実際の録音処理を開始
+          // recordingフラグがfalseの場合のみ実行（ユーザーがタブを切り替えるなどでキャンセルされた場合を考慮）
+          if (!this.recording) {
+            this.startRecording();
+          }
         }
       }, 1000);
     },
     async startRecording() {
-      this.remainingTime = 100; // バーを100%にリセット
-      this.recording = true; // 録音開始時にフラグを立てる
       this.result = null;
       this.recordedFile = null;
       try {
@@ -268,6 +239,8 @@ export default {
           stream.getTracks().forEach(track => track.stop());
         };
         this.mediaRecorder.start();
+        this.recording = true;
+        this.remainingTime = 100; // バーを100%にリセット
 
         // 100msごとにバーを更新
         this.recordingTimer = setInterval(() => {
@@ -278,12 +251,12 @@ export default {
         }, 100);
 
         // 10秒後に録音を自動停止
-        this.recordingTimeout = setTimeout(() => {
+        setTimeout(() => {
           // mediaRecorderが存在し、録音中の場合のみ停止する
           if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
             this.stopRecording();
           }
-        }, 10000); // 10秒
+        }, 10000);
       } catch (err) {
         console.error("マイクへのアクセスに失敗しました。", err);
         alert("マイクへのアクセス許可が必要です。");
@@ -292,13 +265,6 @@ export default {
     stopRecording() {      if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
         this.mediaRecorder.stop();
         this.recording = false;
-        // タイマーをクリアする
-        if (this.recordingTimer) {
-          clearInterval(this.recordingTimer);
-        }
-        if (this.recordingTimeout) {
-          clearTimeout(this.recordingTimeout);
-        }
       }
     },
     async uploadRecordedAudio() {
@@ -310,7 +276,6 @@ export default {
 
       this.loading = true;
       this.result = null;
-      this.tabAtRequestStart = this.selectedTab; // 解析開始時のタブを記録
 
       try {
         // Step 1: Write the recorded file to FFmpeg's file system
@@ -333,10 +298,7 @@ export default {
             "Content-Type": "multipart/form-data",
           },
         });
-        // 結果をセットする前に、タブが変更されていないか確認
-        if (this.selectedTab === this.tabAtRequestStart) {
-          this.result = response.data;
-        }
+        this.result = response.data;
       } catch (error) {
         console.error("アップロード失敗:", error);
       } finally {
@@ -458,6 +420,12 @@ export default {
 .recording-indicator {
   margin-top: 10px;
   color: #e74c3c;
+  font-weight: bold;
+}
+
+.countdown-indicator {
+  margin-top: 10px;
+  color: #e74c3c; /* 赤色に変更 */
   font-weight: bold;
 }
 
