@@ -11,7 +11,7 @@ CORS(app)
 try:
     classifier = pipeline(
         "audio-classification", 
-        model="superb/wav2vec2-base-jp-emotion"  # モデル名を修正
+        model="superb/wav2vec2-base-superb-er"  # モデル名を修正
     )
     print("AIモデルが正常にロードされました。")
 except Exception as e:

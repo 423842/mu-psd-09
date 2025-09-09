@@ -1,6 +1,6 @@
-# 生成AI活用サンプルアプリ
+# 音声感情分析アプリ（工事中）
 
-# 概要
+# 概要（未着工）
 
 このアプリは Python とVue.jsを用いて作られた簡易的な生成AI活用アプリです。
 
@@ -8,7 +8,7 @@
 
 - バックエンドに、Python,FlaskとOpenAI APIを用いて、OpenRouter APIを叩いています。
 
-# 開発ツールインストール
+# 開発ツールインストール（未着工、変える必要あり？）
 
 - 管理者権限でコマンドプロンプトを起動します。
 
@@ -26,7 +26,7 @@ winget install --id Microsoft.VisualStudioCode -e --source winget
   - Python
   - Vue.js Extension Pack
 
-# 環境セットアップ
+# 環境セットアップ（未着工）
 
 - [OpenRouter](https://openrouter.ai/)にアカウントを作成します。
 
@@ -40,17 +40,24 @@ winget install --id Microsoft.VisualStudioCode -e --source winget
 
 # 実行方法
 
-- example.envを.envにリネームして、OpenRouterのキーを記載してください。
+- ２つのコマンドプロンプトを起動します。
 
-- 以下のコマンドでサーバを起動します。
+- １つ目のコマンドプロンプトでは、以下のコマンドを実行します。
 
+  ``` cd .\backend ```
+  ``` venv\Scripts\activate ```
   ``` python app.py ```
+
+- ２つ目のコマンドプロンプトでは、以下のコマンドを実行します。
+
+  ``` cd .\frontend ```
+  ``` npm run dev ```
 
 - ブラウザで以下のURLにアクセスしてみてください。
 
-  ``` http://localhost:5000 ```
+  ``` http://localhost:5173 ```
 
-# 開発の参考資料
+# 開発の参考資料（未着工）
 
 - vscodeのGemini Code Assist を起動して修正を依頼すると、コードを修正したり解説してくれます。
 
@@ -58,7 +65,7 @@ winget install --id Microsoft.VisualStudioCode -e --source winget
 
 - バックエンド担当者は、app.py上にURLとAPIを作成してください。
 
-# 参考リンク
+# 参考リンク（未着工）
 
 - [Flask](https://flask.palletsprojects.com/en/stable/)
 
