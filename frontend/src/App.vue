@@ -1,17 +1,66 @@
 <template>
   <div id="app">
     <h1>音声感情分析アプリ</h1>
-    <p>音声ファイルをアップロードして、感情を判定します。</p>
-    
-    <input type="file" @change="handleFileUpload" />
-    
-    <button @click="uploadFile" :disabled="!selectedFile || loading">
-      {{ loading ? '解析中...' : 'アップロードして解析' }}
-    </button>
+    <p>音声ファイルをアップロードするか、マイクで録音して感情を判定します。</p>
+
+    <div class="tabs">
+      <button 
+        :class="{ active: selectedTab === 'file' }" 
+        @click="selectTab('file')">
+        WAVファイル
+      </button>
+      <button 
+        :class="{ active: selectedTab === 'record' }" 
+        @click="selectTab('record')">
+        音声を録音
+      </button>
+    </div>
+
+    <div v-if="selectedTab === 'file'" class="tab-content">
+      <input type="file" @change="handleFileUpload" v-if="!loading" />
+      <button @click="uploadFile" :disabled="!selectedFile || loading" class="action-button" :style="{ minWidth: '180px' }">
+        {{ loading ? `解析中${'.'.repeat(loadingDotsCount)}` : 'アップロードして解析' }}
+      </button>
+    </div>
+
+    <div v-if="selectedTab === 'record'" class="tab-content">
+      <div class="record-controls">
+        <button 
+          @click="startRecording" 
+          :disabled="recording || loading" 
+          class="record-button">
+          録音開始
+        </button>
+        <button 
+          @click="stopRecording" 
+          :disabled="!recording" 
+          class="stop-button">
+          録音停止
+        </button>
+      </div>
+      <p v-if="recording" class="recording-indicator">🔴 録音中...</p>
+      
+      <button 
+        v-if="recordedFile && !loading" 
+        @click="uploadRecordedAudio" 
+        class="action-button analyze-button">
+        解析
+      </button>
+      <p v-if="recordedFile && !loading" class="recorded-info">録音完了！「解析」ボタンを押してください。</p>
+      <p v-if="loading" class="loading-indicator">解析中{{ '.'.repeat(loadingDotsCount) }}</p>
+    </div>
     
     <div v-if="result">
-      <h2>解析結果</h2>
+      <h2 v-if="selectedTab === 'file'">{{ selectedFile.name }}の解析結果</h2>
+      <h2 v-if="selectedTab === 'record'">録音した音声の解析結果</h2>
       <p><strong>テキスト:</strong> {{ result.transcription }}</p>
+      <h3 v-if="dominantEmotion" class="summary-text">
+        この音声には 
+        <strong :style="{ color: getOpaqueColor(emotionColors[dominantEmotion.label]) }">
+          {{ dominantEmotion.label }}
+        </strong>
+        の感情が <strong>{{ dominantEmotion.score }}%</strong> 含まれています。
+      </h3>
       
       <h3>感情スコア</h3>
       <ul>
@@ -38,32 +87,92 @@ export default {
   name: "App",
   data() {
     return {
+      selectedTab: 'file', // 'file' or 'record'
       selectedFile: null,
       result: null,
       loading: false,
-      emotionColors: {
-        '喜び': 'rgba(255, 255, 0, 0.3)',
-        '悲しみ': 'rgba(0, 0, 255, 0.2)',
-        '怒り': 'rgba(255, 0, 0, 0.2)',
-        '驚き': 'rgba(255, 165, 0, 0.2)',
-        '恐怖': 'rgba(128, 0, 128, 0.2)',
-        '嫌悪': 'rgba(0, 128, 0, 0.2)',
+      recording: false,
+      recordedFile: null,
+      mediaRecorder: null,
+      audioChunks: [],
+      ffmpeg: null,
+      loadingDotsCount: 0,
+      loadingInterval: null,
+      emotionColors: { // 感情と色のマッピング
+        '喜び': 'rgba(255, 225, 0, 0.4)',
+        '悲しみ': 'rgba(0, 130, 255, 0.3)',
+        '怒り': 'rgba(255, 0, 0, 0.3)',
+        '驚き': 'rgba(255, 135, 0, 0.3)',
+        '恐怖': 'rgba(128, 0, 128, 0.3)',
+        '嫌悪': 'rgba(0, 128, 0, 0.3)',
         '中立': 'rgba(220, 220, 220, 0.4)',
         'その他': 'rgba(80, 80, 80, 0.3)'
       }
     };
   },
+  async mounted() {
+    if (window.FFmpeg) {
+      this.ffmpeg = window.FFmpeg.createFFmpeg({ log: true });
+      await this.ffmpeg.load();
+      console.log("ffmpeg.wasm is loaded.");
+    }
+  },
+  watch: {
+    loading(isLoading) {
+      if (isLoading) {
+        // Start the dot animation
+        this.loadingInterval = setInterval(() => {
+          this.loadingDotsCount = (this.loadingDotsCount + 1) % 4; // 0, 1, 2, 3
+        }, 1000); // 1秒ごとに更新
+      } else {
+        // Stop the dot animation
+        clearInterval(this.loadingInterval);
+        this.loadingInterval = null;
+        this.loadingDotsCount = 0; // Reset dots
+      }
+    }
+  },
+  computed: {
+    dominantEmotion() {
+      if (!this.result || !this.result.emotions || this.result.emotions.length === 0) {
+        return null;
+      }
+      // Use reduce to find the emotion with the highest score
+      return this.result.emotions.reduce((max, current) => {
+        // The score from the API is a string like "98.86", so we need to parse it to a number.
+        const maxScore = parseFloat(max.score);
+        const currentScore = parseFloat(current.score);
+        return currentScore > maxScore ? current : max;
+      });
+    }
+  },
   methods: {
+    selectTab(tab) {
+      this.selectedTab = tab;
+      // Clear the analysis result and recorded file when switching tabs
+      this.result = null;
+      this.recordedFile = null;
+      this.selectedFile = null;
+    },
+    getOpaqueColor(rgbaColor) {
+      if (!rgbaColor) return '#2c3e50'; // Default color
+      // 'rgba(r,g,b,a)' -> 'rgb(r,g,b)'
+      // This makes the color fully opaque for text.
+      const parts = rgbaColor.match(/[\d.]+/g);
+      if (!parts || parts.length < 3) return '#2c3e50';
+      return `rgb(${parts[0]}, ${parts[1]}, ${parts[2]})`;
+    },
     handleFileUpload(event) {
       this.selectedFile = event.target.files[0];
+      this.recordedFile = null;
     },
     async uploadFile() {
       if (!this.selectedFile) return;
+      this.loading = true;
+      this.result = null;
 
       const formData = new FormData();
       formData.append("file", this.selectedFile);
-
-      this.loading = true;
 
       try {
         const response = await axios.post("/api/upload", formData, {
@@ -71,7 +180,6 @@ export default {
             "Content-Type": "multipart/form-data",
           },
         });
-
         this.result = response.data;
       } catch (error) {
         console.error("アップロード失敗:", error);
@@ -79,6 +187,72 @@ export default {
         this.loading = false;
       }
     },
+    async startRecording() {
+      this.result = null;
+      this.recordedFile = null;
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        this.mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+        this.audioChunks = [];
+        this.mediaRecorder.ondataavailable = event => {
+          this.audioChunks.push(event.data);
+        };
+        this.mediaRecorder.onstop = () => {
+          const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
+          this.recordedFile = new File([audioBlob], 'recorded_audio.webm', { type: 'audio/webm' });
+          stream.getTracks().forEach(track => track.stop());
+        };
+        this.mediaRecorder.start();
+        this.recording = true;
+      } catch (err) {
+        console.error("マイクへのアクセスに失敗しました。", err);
+        alert("マイクへのアクセス許可が必要です。");
+      }
+    },
+    stopRecording() {
+      if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
+        this.mediaRecorder.stop();
+        this.recording = false;
+      }
+    },
+    async uploadRecordedAudio() {
+      if (!this.recordedFile) return;
+      if (!this.ffmpeg) {
+        console.error("FFmpeg.wasm is not loaded yet.");
+        return;
+      }
+
+      this.loading = true;
+      this.result = null;
+
+      try {
+        // Step 1: Write the recorded file to FFmpeg's file system
+        const fetchFile = window.FFmpeg.fetchFile;
+        this.ffmpeg.FS('writeFile', 'input.webm', await fetchFile(this.recordedFile));
+
+        // Step 2: Convert WebM to WAV
+        await this.ffmpeg.run('-i', 'input.webm', '-acodec', 'pcm_s16le', '-ac', '1', '-ar', '16000', 'output.wav');
+
+        // Step 3: Read the converted WAV file
+        const data = this.ffmpeg.FS('readFile', 'output.wav');
+        const convertedWav = new Blob([data.buffer], { type: 'audio/wav' });
+
+        // Step 4: Send the converted WAV file to the backend
+        const formData = new FormData();
+        formData.append("file", convertedWav, "converted.wav");
+
+        const response = await axios.post("/api/upload", formData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        });
+        this.result = response.data;
+      } catch (error) {
+        console.error("アップロード失敗:", error);
+      } finally {
+        this.loading = false;
+      }
+    }
   },
 };
 </script>
@@ -93,7 +267,45 @@ export default {
   margin-top: 60px;
 }
 
-button {
+/* Tabs */
+.tabs {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.tabs button {
+  background-color: #f0f0f0;
+  color: #555;
+  border: 1px solid #ccc;
+  padding: 10px 20px;
+  border-radius: 5px 5px 0 0;
+  cursor: pointer;
+  font-size: 16px;
+  margin: 0 2px;
+  transition: all 0.3s ease;
+}
+
+.tabs button:hover {
+  background-color: #e0f7ff; /* 薄い空色 */
+}
+
+.tabs button.active {
+  background-color: #007bff; /* 濃い青色 */
+  color: white;
+  border-bottom: 1px solid white;
+}
+
+.tab-content {
+  border: 1px solid #ccc;
+  border-radius: 0 5px 5px 5px;
+  padding: 20px;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+/* Common button styles */
+.action-button {
   background-color: #4CAF50;
   color: white;
   padding: 10px 20px;
@@ -101,20 +313,75 @@ button {
   border-radius: 5px;
   cursor: pointer;
   font-size: 16px;
-  margin-top: 20px;
+  margin-top: 10px;
+  margin-left: 5px;
+  margin-right: 5px;
 }
 
-button:hover:not(:disabled) {
+.action-button:hover:not(:disabled) {
   background-color: #45a049;
 }
 
-button:disabled {
+.action-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   background-color: #cccccc;
   color: #666666;
 }
 
+/* Record specific styles */
+.record-controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.record-controls button {
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  margin-top: 10px;
+  transition: background-color 0.3s ease;
+}
+
+.record-button { background-color: #e74c3c; } /* Red */
+.record-button:hover:not(:disabled) { background-color: #e96358; } /* Lighter Red */
+.record-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.stop-button { background-color: #f39c12; }  /* Orange */
+.stop-button:hover:not(:disabled) { background-color: #f5a83a; } /* Lighter Orange */
+.stop-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.analyze-button { background-color: #4CAF50; } /* Green */
+.analyze-button:hover:not(:disabled) { background-color: #45a049; } /* Lighter Green */
+
+.recording-indicator {
+  margin-top: 10px;
+  color: #e74c3c;
+  font-weight: bold;
+}
+
+.recorded-info {
+  margin-top: 10px;
+}
+
+.loading-indicator {
+  margin-top: 10px;
+  font-weight: bold;
+  color: #555;
+}
+
+/* Emotion list styles */
 ul {
   list-style-type: none;
   padding: 0;
@@ -130,8 +397,8 @@ li {
   padding: 10px;
   margin-bottom: 5px;
   border-radius: 5px;
-  overflow: hidden; /* バーがはみ出さないように */
-  z-index: 1; /* コンテンツを前面に */
+  overflow: hidden;
+  z-index: 1;
 }
 
 .score-bar {
@@ -141,11 +408,11 @@ li {
   height: 100%;
   width: var(--score-width);
   background-color: var(--score-color);
-  z-index: -1; /* 背景に配置 */
+  z-index: -1;
   transition: width 0.5s ease-in-out;
 }
 
 li strong {
-  z-index: 2; /* 文字がバーより手前になるように */
+  z-index: 2;
 }
 </style>

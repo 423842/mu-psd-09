@@ -3,6 +3,7 @@ import os
 import tempfile
 import logging
 from flask import Flask, request, jsonify
+from flask import Flask, Response, request
 from flask_cors import CORS
 import whisper
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
@@ -29,6 +30,11 @@ ALLOWED_EXTENSIONS = {".wav", ".wave"}
 def allowed_filename(filename):
     _, ext = os.path.splitext(filename.lower())
     return ext in ALLOWED_EXTENSIONS
+
+def add_security_headers(response):
+    response.headers['Cross-Origin-Opener-Policy'] = 'same-origin'
+    response.headers['Cross-Origin-Embedder-Policy'] = 'require-corp'
+    return response
 
 # ---------- Load models (on startup) ----------
 logger.info(f"Loading Whisper ASR model: {WHISPER_MODEL}")
