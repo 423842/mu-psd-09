@@ -18,7 +18,8 @@
 
     <div v-if="selectedTab === 'file'" class="tab-content">
       <input type="file" @change="handleFileUpload" v-if="!loading" />
-      <button @click="uploadFile" :disabled="!selectedFile || loading" class="action-button" :style="{ minWidth: '180px' }">
+      <p v-if="fileError" class="error-message">{{ fileError }}</p>
+      <button @click="uploadFile" :disabled="!selectedFile || loading || result" class="action-button" :style="{ minWidth: '180px' }">
         {{ loading ? `解析中${'.'.repeat(loadingDotsCount)}` : 'アップロードして解析' }}
       </button>
     </div>
@@ -45,12 +46,12 @@
       </div>
       
       <button 
-        v-if="recordedFile && !loading && countdown <= 0" 
+        v-if="recordedFile && !loading && countdown <= 0 && !result" 
         @click="uploadRecordedAudio" 
         class="action-button analyze-button">
         解析
       </button>
-      <p v-if="recordedFile && !loading && countdown <= 0" class="recorded-info">録音完了！「解析」ボタンを押してください。</p>
+      <p v-if="recordedFile && !loading && countdown <= 0 && !result" class="recorded-info">録音完了！「解析」ボタンを押してください。</p>
       <p v-if="loading" class="loading-indicator">解析中{{ '.'.repeat(loadingDotsCount) }}</p>
     </div>
     
@@ -101,6 +102,7 @@ export default {
       selectedTab: 'file', // 'file' or 'record'
       selectedFile: null,
       result: null,
+      fileError: null, // WAVファイル以外のエラーメッセージ用
       loading: false,
       recording: false,
       recordedFile: null,
@@ -199,6 +201,7 @@ export default {
       if (!this.loading) {
         this.result = null;
         this.selectedFile = null;
+        this.fileError = null; // タブ切り替えでエラーをクリア
       }
       this.recordedFile = null;
     },
@@ -211,7 +214,16 @@ export default {
       return `rgb(${parts[0]}, ${parts[1]}, ${parts[2]})`;
     },
     handleFileUpload(event) {
-      this.selectedFile = event.target.files[0];
+      this.result = null; // ファイルが再選択されたら結果をクリア
+      const file = event.target.files[0];
+      if (file && file.type !== 'audio/wav') {
+        this.fileError = 'WAVファイル以外のファイルは解析できません';
+        this.selectedFile = null;
+        event.target.value = ''; // ファイル選択をリセット
+      } else {
+        this.fileError = null;
+        this.selectedFile = file;
+      }
       this.recordedFile = null;
     },
     async uploadFile() {
@@ -253,7 +265,7 @@ export default {
     async startRecording() {
       this.remainingTime = 100; // バーを100%にリセット
       this.recording = true; // 録音開始時にフラグを立てる
-      this.result = null;
+      this.result = null; // 録音開始時に結果をクリア
       this.recordedFile = null;
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -392,6 +404,12 @@ export default {
   padding: 20px;
   max-width: 500px;
   margin: 0 auto;
+}
+
+.error-message {
+  color: red;
+  margin-top: 10px;
+  font-size: 14px;
 }
 
 /* Common button styles */
