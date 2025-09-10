@@ -1,14 +1,13 @@
-# 音声感情分析アプリ（工事中）
+# 音声感情分析アプリ
 
-# 概要（未着工）
+# 概要
 
-このアプリは Python とVue.jsを用いて作られた簡易的な生成AI活用アプリです。
+このプロジェクトは、音声認識と自然言語処理を活用して、日本語の音声に含まれる感情を分析するアプリケーションです。
+音声ファイルをアップロードする,もしくはその場で録音することで、その内容の文字起こしと、検出された感情の内訳を確認できます。
+ OpenAIの強力な Whisper モデルを使用して、日本語の音声ファイルを文字起こしできるのが特徴です。
 
-- フロントエンドに、Vue.js CDN版を用いています。
+# 開発ツールインストール
 
-- バックエンドに、Python,FlaskとOpenAI APIを用いて、OpenRouter APIを叩いています。
-
-# 開発ツールインストール（未着工、変える必要あり？）
 
 - 管理者権限でコマンドプロンプトを起動します。
 
@@ -20,23 +19,38 @@ winget install --id Python.Python.3 -e --source winget
 winget install --id Microsoft.VisualStudioCode -e --source winget
 ```
 
-- vscodeを起動し、アクティビティバーの拡張機能から、以下のプラグインをインストールしてください。
+# 環境セットアップ
 
-  - Gemini Code Assist
-  - Python
-  - Vue.js Extension Pack
+## Python ライブラリインストール
 
-# 環境セットアップ（未着工）
+- 以下のコマンドでPythonの利用ライブラリをインストールします。
 
-- [OpenRouter](https://openrouter.ai/)にアカウントを作成します。
+  ``` 
+  		pip install -r requrements.txt 
+      pip install Flask
+      pip install Flask-Cors
+      pip install openai-whisper
+      pip install transformers
+      pip install "fugashi[unidic-lite]" protobuf
+      pip install sentencepiece
+  ```
+## ffmpegのインストール&環境変数を編集
 
-- OpenRouterで、Keys → Create API Keys を選択、適当なキー名を付けて作成し、キー文字列をメモ帳等に保存しておきます。
+	Cドライブ直下に```ffmpeg```ファイルを新規作成します。
+	ffmpegをダウンロードします。
+	ファイルを解凍し、中身を作成したファイルに移動します。
+	スタートメニューの検索から「環境変数を編集」と検索し、これを開きます。
+	<font color="gray">*ユーザー名*</font>のユーザー環境変数の一覧から変数:Pathを選択し、編集をクリックします。
+	新規をクリックして、以下のように入力します。
+	```
+			C:\ffmpeg\bin
+	```
+	OKをクリックして環境変数を閉じます。
 
-- Python ライブラリインストール
+## Node.jsのインストール
 
-  以下のコマンドでPythonの利用ライブラリをインストールします。
-
-  ``` pip install -r requrements.txt ```
+ Node.jsの公式サイトにアクセスしてLTS版をダウンロードして、インストーラをダウンロードしてください。
+ Add to PATH という項目にチェックが入っていることを確認してください。
 
 # 実行方法
 
@@ -61,15 +75,8 @@ winget install --id Microsoft.VisualStudioCode -e --source winget
 
   ``` http://localhost:5173 ```
 
-# 開発の参考資料（未着工）
 
-- vscodeのGemini Code Assist を起動して修正を依頼すると、コードを修正したり解説してくれます。
-
-- フロントエンド担当者は、html/JavaScriptを追加／修正して画面を構築してください。
-
-- バックエンド担当者は、app.py上にURLとAPIを作成してください。
-
-# 参考リンク（未着工）
+# 参考リンク
 
 - [Flask](https://flask.palletsprojects.com/en/stable/)
 
@@ -87,3 +94,10 @@ winget install --id Microsoft.VisualStudioCode -e --source winget
 
   - Pythonから、OpenAI APIを呼び出すライブラリ
 
+- [ffmpeg Builds](https://www.gyan.dev/ffmpeg/builds/)
+
+  - 音声をAIが処理可能なフォーマットに変換するためのライブラリをダウンロードするサイト
+
+- [Node.js](https://nodejs.org/ja)
+
+ - npmを使えるようにするようインストールするNode.jsの公式サイト
