@@ -36,9 +36,15 @@
   - **フレームワーク**: Vue.js 2
   - **HTTPクライアント**: Axios (バックエンドAPIとの通信用)
   - **音声処理**: FFmpeg.wasm (クライアントサイドでのWebMからWAVへの音声形式変換用)
-- **バックエンド (想定)**:
-  - `/api/upload` エンドポイントを持つサーバー。
-  - 音声ファイルを受け取り、音声認識と感情分析を実行するAPI。
+- **バックエンド**:
+  - **Webフレームワーク**: Flask
+  - **CORS対応**: Flask-Cors
+  - **音声認識 (ASR)**: OpenAI Whisper (`small`モデル)
+  - **感情分析**: Hugging Face Transformers
+    - **モデル**: `koshin2001/Japanese-to-emotions`
+  - **エンドポイント**:
+    - `GET /health`: APIのヘルスチェック
+    - `POST /upload`: 音声ファイルをアップロードし、文字起こしと感情分析結果を返す
 
 ## 4. コンポーネント構成 (Component Structure)
 
