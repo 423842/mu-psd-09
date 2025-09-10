@@ -18,12 +18,6 @@ winget install --id Python.Python.3 -e --source winget
 winget install --id Microsoft.VisualStudioCode -e --source winget
 ```
 
-ffmpeg-2025-09-04-git-2611874a50-full_build.7z.sha256をダウンロードして、それをエクスプローラー直下におきます。
-その後、環境変数を編集して、Pathにします。
-
-
-
-
 # 環境セットアップ（利用ライブラリをいじったよ,環境変数いじるって書いたよ）
 
 - [OpenRouter](https://openrouter.ai/)にアカウントを作成します。
@@ -45,7 +39,12 @@ ffmpeg-2025-09-04-git-2611874a50-full_build.7z.sha256をダウンロードして
 環境変数を編集
 
   ffmpeg-2025-09-04-git-2611874a50-full_build.7z.sha256をダウンロードして、それをエクスプローラー直下におきます。
-その後、環境変数を編集して、Pathにします。
+
+Node.jsのインストール
+
+ Node.jsの公式サイトにアクセスしてLTS版をダウンロードして、インストーラをダウンロードしてください。
+ Add to PATH という項目にチェックが入っていることを確認してください。
+
 
 
 # 実行方法(このままでいいよね？)
@@ -71,13 +70,6 @@ ffmpeg-2025-09-04-git-2611874a50-full_build.7z.sha256をダウンロードして
 
   ``` http://localhost:5173 ```
 
-# 開発の参考資料（これ消してもいい気がする）
-
-- vscodeのGemini Code Assist を起動して修正を依頼すると、コードを修正したり解説してくれます。
-
-- フロントエンド担当者は、html/JavaScriptを追加／修正して画面を構築してください。
-
-- バックエンド担当者は、app.py上にURLとAPIを作成してください。
 
 # 参考リンク（ffmpegだけ追加したよ）
 
@@ -97,9 +89,11 @@ ffmpeg-2025-09-04-git-2611874a50-full_build.7z.sha256をダウンロードして
 
   - Pythonから、OpenAI APIを呼び出すライブラリ
 
-sentencepiece
- - [ffmpeg Builds](https://www.gyan.dev/ffmpeg/builds/)
+- [ffmpeg Builds](https://www.gyan.dev/ffmpeg/builds/)
 
   - ffmpeg-2025-09-04-git-2611874a50-full_build.7z.sha256をダウンロードして用いたもの
 
 
+- [Node.js](https://nodejs.org/ja)
+
+ - npmを使えるようにするようインストールするNode.jsの公式サイト
