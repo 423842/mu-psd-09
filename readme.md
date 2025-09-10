@@ -1,10 +1,13 @@
 # 音声感情分析アプリ
 
+
 ## 概要
+
 
 このプロジェクトは、音声認識と自然言語処理を活用して、日本語の音声に含まれる感情を分析するアプリケーションです。
 音声ファイルをアップロードする,もしくはその場で録音することで、その内容の文字起こしと、検出された感情の内訳を確認できます。
  OpenAIの強力な Whisper モデルを使用して、日本語の音声ファイルを文字起こしできるのが特徴です。
+
 
 ## 開発ツールインストール
 
@@ -19,7 +22,9 @@ winget install --id Python.Python.3 -e --source winget
 winget install --id Microsoft.VisualStudioCode -e --source winget
 ```
 
+
 ## 環境セットアップ
+
 
 ### Python ライブラリインストール
 
@@ -55,7 +60,9 @@ OKをクリックして環境変数を閉じます。
  Node.jsの公式サイトにアクセスしてLTS版をダウンロードして、インストーラをダウンロードしてください。<br>
  Add to PATH という項目にチェックが入っていることを確認してください。
 
+
 ## 実行方法
+
 
 ２つのコマンドプロンプトを起動します。
 
@@ -80,6 +87,7 @@ npm run dev
 
 
 ## 参考リンク
+
 
 - [Flask](https://flask.palletsprojects.com/en/stable/)
 
