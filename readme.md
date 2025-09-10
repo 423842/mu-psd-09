@@ -26,7 +26,7 @@ winget install --id Microsoft.VisualStudioCode -e --source winget
 - 以下のコマンドでPythonの利用ライブラリをインストールします。
 
   ``` 
-  		pip install -r requrements.txt 
+      pip install -r requrements.txt 
       pip install Flask
       pip install Flask-Cors
       pip install openai-whisper
