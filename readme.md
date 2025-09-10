@@ -1,14 +1,12 @@
 # 音声感情分析アプリ（工事中）
 
-# 概要（未着工）
+# 概要（確認待ち）
 
-このアプリは Python とVue.jsを用いて作られた簡易的な生成AI活用アプリです。
+このプロジェクトは、音声認識（Speech-to-Text） と 自然言語処理（NLP） を活用して、日本語の音声に含まれる感情を分析するアプリケーションです。
+音声ファイルをアップロードする,もしくはその場で録音することで、その内容の文字起こしと、検出された感情の内訳を確認できます。
+ OpenAIの強力な Whisper モデルを使用して、日本語の音声ファイルを文字起こしできるのが特徴です。
+# 開発ツールインストール（確認待ち）
 
-- フロントエンドに、Vue.js CDN版を用いています。
-
-- バックエンドに、Python,FlaskとOpenAI APIを用いて、OpenRouter APIを叩いています。
-
-# 開発ツールインストール（未着工、変える必要あり？）
 
 - 管理者権限でコマンドプロンプトを起動します。
 
@@ -20,13 +18,13 @@ winget install --id Python.Python.3 -e --source winget
 winget install --id Microsoft.VisualStudioCode -e --source winget
 ```
 
-- vscodeを起動し、アクティビティバーの拡張機能から、以下のプラグインをインストールしてください。
+ffmpeg-2025-09-04-git-2611874a50-full_build.7z.sha256をダウンロードして、それをエクスプローラー直下におきます。
+その後、環境変数を編集して、Pathにします。
 
-  - Gemini Code Assist
-  - Python
-  - Vue.js Extension Pack
 
-# 環境セットアップ（未着工）
+
+
+# 環境セットアップ（利用ライブラリをいじったよ）
 
 - [OpenRouter](https://openrouter.ai/)にアカウントを作成します。
 
@@ -36,7 +34,19 @@ winget install --id Microsoft.VisualStudioCode -e --source winget
 
   以下のコマンドでPythonの利用ライブラリをインストールします。
 
-  ``` pip install -r requrements.txt ```
+  ``` pip install -r requrements.txt 
+      pip install Flask
+      pip install Flask-Cors
+      pip install openai-whisper
+      pip install transformers
+      pip install "fugashi[unidic-lite]" protobuf
+      pip install sentencepiece
+  ```
+環境変数を編集
+
+  ffmpeg-2025-09-04-git-2611874a50-full_build.7z.sha256をダウンロードして、それをエクスプローラー直下におきます。
+その後、環境変数を編集して、Pathにします。
+
 
 # 実行方法
 
@@ -69,7 +79,7 @@ winget install --id Microsoft.VisualStudioCode -e --source winget
 
 - バックエンド担当者は、app.py上にURLとAPIを作成してください。
 
-# 参考リンク（未着工）
+# 参考リンク（ffmpegだけ追加したよ）
 
 - [Flask](https://flask.palletsprojects.com/en/stable/)
 
@@ -86,4 +96,10 @@ winget install --id Microsoft.VisualStudioCode -e --source winget
 - [OpenAI API](https://github.com/openai/openai-python)
 
   - Pythonから、OpenAI APIを呼び出すライブラリ
+
+sentencepiece
+ - [ffmpeg Builds](https://www.gyan.dev/ffmpeg/builds/)
+
+  - ffmpeg-2025-09-04-git-2611874a50-full_build.7z.sha256をダウンロードして用いたもの
+
 
